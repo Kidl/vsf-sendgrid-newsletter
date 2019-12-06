@@ -1,12 +1,17 @@
 {
   "additionalProperties": true,
   "required": [
-    "email"
+    "email",
+    "country"
   ],
   "properties": {
     "email": {
       "type": "string",
       "format": "email"
+    },
+    "country": {
+      "type": "string",
+      "pattern": "^[A-Z]{3}$"
     }
   }
 }

@@ -1,106 +1,149 @@
-import { apiStatus } from '../../../lib/util'
-import { Router } from 'express'
+import { apiStatus } from "../../../lib/util";
+import { Router } from "express";
+import client from "@sendgrid/client";
+import { merge } from "lodash";
+
+const Ajv = require("ajv");
+const fs = require("fs");
+
+const getAllLists = async (client) => {
+  let request = {};
+  request.method = "GET";
+  request.url = "/v3/marketing/lists";
+
+  try {
+    let [response, ] = await client.request(request)
+    return response.body.result
+  } catch (err) {
+    console.log(err.response.body);
+    apiStatus(res, "Could not fetch lists, sorry!", 500);
+  }
+};
+
+const mapListsToIds = (allLists, neededLists) => allLists.filter(list => list.name && neededLists.includes(list.name)).map(list => list.id)
+const findListId = (allLists, neededList) => {
+  const record = allLists.find(list => list.name === neededList)
+  if (!record) {
+    return false
+  }
+  return record.id
+}
 
 module.exports = ({ config, db }) => {
+  let api = Router();
+  client.setApiKey(config.extensions.sendgrid.key);
 
-  const pickProperListId = (res, storeCode = null) => {
+  api.post("/", async (req, res) => {
+    const ajv = new Ajv();
 
-    if (config.storeViews.multistore === true && storeCode !== null) {
-  
-      if(!('multistoreListIds' in config.extensions.klaviyo)) {
-        apiStatus(res, "Klaviyo - Provide proper config for multistore!", 500)
-      }
-
-      if(!(storeCode in config.extensions.klaviyo.multistoreListIds)) {
-        apiStatus(res, "Klaviyo - Provided storeCode - " + storeCode + "does not exist", 500)
-      }
-  
-      return config.extensions.klaviyo.multistoreListIds[storeCode]
-  
-    } else {
-  
-      return config.extensions.klaviyo.listId
-  
+    const contactSchema = require("./models/contact.schema.json");
+    let contactSchemaExtension = {};
+    if (fs.existsSync("./models/contact.schema.extension.json")) {
+      contactSchemaExtension = require("./models/contact.schema.extension.json");
     }
-  
-  }
+    const validate = ajv.compile(merge(contactSchema, contactSchemaExtension));
 
-  
-  let klaviyoApi = Router()
-
-  /**
-   * POST Subscribe to List
-   */
-  klaviyoApi.post('/subscribe', (req, res) => {
-    let userData = req.body
-    let listId = null
-    if (!userData.email) {
-      apiStatus(res, 'Invalid e-mail provided!', 500)
-      return
+    if (!validate(req.body)) {
+      console.dir(validate.errors);
+      apiStatus(res, validate.errors, 500);
+      return;
     }
 
-    if(config.storeViews.multistore === true) {
-      if(!userData.storeCode) {
-        apiStatus(res, 'Provide storeCode!', 500)
-        return
-      }
-      listId = pickProperListId(res, userData.storeCode)
-    } else {
-      listId = pickProperListId(res)
+    const { lists } = req.body;
+    let list_ids;
+
+    if (lists) {
+      const allLists = await getAllLists(client)
+      list_ids = mapListsToIds(allLists, lists)
     }
 
-    let request = require('request')
-    request({
-      url: config.extensions.klaviyo.apiUrl + '/v2/list/' + listId + '/subscribe',
-      method: 'POST',
-      headers: { 'api-key': config.extensions.klaviyo.apiKey },
-      json: true,
-      body: { profiles: [ { email: userData.email } ] }
-    }, (error, response, body) => {
-      if (error) {
-        apiStatus(res, error, 500)
-      } else {
-        apiStatus(res, body, 200)
-      }
-    })
-  })
+    let request = {};
+    request.body = {
+      // Mapping to array
+      ...(list_ids
+        ? { list_ids: Array.isArray(list_ids) ? list_ids : [list_ids] }
+        : {}),
+      contacts: [req.body]
+    };
+    request.method = "PUT";
+    request.url = "/v3/marketing/contacts";
 
-  /**
-   * DELETE delete an user
-   */
-  klaviyoApi.delete('/subscribe', (req, res) => {
-    let userData = req.body
-    let listId = null
-    if (!userData.email) {
-      apiStatus(res, 'Invalid e-mail provided!', 500)
-      return
+    client
+      .request(request)
+      .then(([response]) => {
+        if (response.statusCode === 202) {
+          apiStatus(res, "Subscribed!", 200);
+        } else {
+          apiStatus(res, "Could not subscribe, sorry!", 500);
+        }
+      })
+      .catch(err => {
+        console.log(err.response.body);
+        apiStatus(res, "Could not subscribe, sorry!", 500);
+      });
+  });
+
+  api.get("/identify", async (req, res) => {
+    const { email, list } = req.query;
+
+    if (!email) {
+      apiStatus(res, "Provide email address", 500);
     }
 
-    if(config.storeViews.multistore === true) {
-      if(!userData.storeCode) {
-        apiStatus(res, 'Provide storeCode!', 500)
-        return
+    let request = {};
+    request.body = {
+      query: `email = '${email}'`
+    };
+    request.method = "POST";
+    request.url = "/v3/marketing/contacts/search";
+
+    let list_id;
+
+    if (list) {
+      const allLists = await getAllLists(client)
+      list_id = findListId(allLists, list)
+      if (!list_id) {
+        apiStatus(
+          res,
+          {
+            exists: false
+          },
+          200
+        );
       }
-      listId = pickProperListId(res, userData.storeCode)
-    } else {
-      listId = pickProperListId(res)
     }
 
-    let request = require('request')
-    request({
-      url: config.extensions.klaviyo.apiUrl + '/v2/list/' + listId + '/subscribe',
-      method: 'DELETE',
-      headers: { 'api-key': config.extensions.klaviyo.apiKey },
-      json: true,
-      body: { emails: [ userData.email ] }
-    }, (error, response, body) => {
-      if (error) {
-        apiStatus(res, error, 500)
-      } else {
-        apiStatus(res, body, 200)
-      }
-    })
-  })
+    if (list_id && !!list_id.length) {
+      request.body.query += ` AND CONTAINS(list_ids, '${list_id}')`
+    }
 
-  return klaviyoApi
-}
+    client
+      .request(request)
+      .then(([response]) => {
+        console.log(response.body.contact_count);
+        if (response.body.contact_count === 1) {
+          apiStatus(
+            res,
+            {
+              exists: true
+            },
+            200
+          );
+        } else {
+          apiStatus(
+            res,
+            {
+              exists: false
+            },
+            200
+          );
+        }
+      })
+      .catch(err => {
+        console.log(err.response.body.errors);
+        apiStatus(res, "Something went wrong, sorry!", 500);
+      });
+  });
+
+  return api;
+};
