@@ -37,7 +37,8 @@ export const actions: ActionTree<SendgridState, any> = {
 
   async subscribe({ commit, state }, { email, key = 'allList' }) {
       let storeView = currentStoreView()
-      const storeCode = (<any>storeView).i18n.abbreviation ? (<any>storeView).i18n.abbreviation : storeView.i18n.fullCountryName
+      let storeCode = (<any>storeView).i18n.abbreviation
+        ? (<any>storeView).i18n.abbreviation : storeView.i18n.fullCountryName
 
       let lists
       if (typeof key === 'string') {
