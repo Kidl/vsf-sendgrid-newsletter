@@ -90,22 +90,22 @@ Payload:
 }
 ```
 
-*email* - That's obviously email address which wants to subscribe
-*country* - 3 Letter abbreviation of user's country
-*lists* - Inside contacts we can create lists. There we could put name of them. If we leaft it empty, Api would add Contact to **All contacts**
+*email* - That's obviously email address which wants to subscribe   
+*country* - 3 Letter abbreviation of user's country   
+*lists* - Inside contacts we can create lists. There we could put name of them. If we leaft it empty, Api would add Contact to **All contacts**   
 
 Responses:
-200 - "Subscribed!"
-500 - "Could not subscribe, sorry!"
-500 - "Could not fetch lists, sorry!"
+200 - "Subscribed!"   
+500 - "Could not subscribe, sorry!"   
+500 - "Could not fetch lists, sorry!"   
 
 ### Check if contact exists in the list
 GET `/api/ext/sengrid-newsletter/identify?email=<requested_email>`
 or
 GET `/api/ext/sengrid-newsletter/identify?email=<requested_email>&list=<requested_list>`
 
-*email* - That's obviously email address which wants to subscribe
-*list* - Inside contacts we can create lists. There we could put name of one of them. If we left it empty, Api would search inside **All contacts**
+*email* - That's obviously email address which wants to subscribe   
+*list* - Inside contacts we can create lists. There we could put name of one of them. If we left it empty, Api would search inside **All contacts**   
 
 Responses:
 200 - 
@@ -114,24 +114,24 @@ Responses:
   exists: true / false
 }
 ```
-500 - "Provide email address"
-500 - "Could not fetch lists, sorry!"
-500 - "Something went wrong, sorry!"
+500 - "Provide email address"   
+500 - "Could not fetch lists, sorry!"   
+500 - "Something went wrong, sorry!"   
 
 ## Components / Mixins
 ### Subscribe.ts
 Path to import: `src/modules/vsf-sendgrid-newsletter/components/Subscribe.ts`
 
-It creates data field for email with the Vuelidate validator for it.
-It also provides method:
+It creates data field for email with the Vuelidate validator for it.   
+It also provides method:   
 ```ts
 sendgridSubscribe(list?: string)
 ```
-We can specify *list* if we want to add to the specific list. Otherwise user would be added to All contacts. 
+We can specify *list* if we want to add to the specific list. Otherwise user would be added to All contacts.    
 
-If user is authenticated, method does not require email from him. It will be taken from his profile. Otherwise, he/she has to provide it.
+If user is authenticated, method does not require email from him. It will be taken from his profile. Otherwise, he/she has to provide it.   
 
-And computed:
+And computed:   
 ```ts
 sendgridSubscriptions(): Subscribed
 ```
