@@ -36,7 +36,7 @@ export const Subscribe = {
     }
   },
   computed: {
-    sendgrdSubscriptions(): Subscribed {
+    sendgridSubscriptions(): Subscribed {
       return this.$store.state['sendgrid-newsletter'].subscribed;
     }
   }

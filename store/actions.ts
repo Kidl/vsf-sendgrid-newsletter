@@ -8,7 +8,7 @@ const baseUrl = config.api.url.endsWith('/') ? config.api.url : `${config.api.ur
 
 export const actions: ActionTree<SendgridState, any> = {
 
-  async identify({ commit, state }, { user, key }) {
+  async identify({ commit, state }, { user, key = undefined }) {
     const { email } = user
 
     try {
