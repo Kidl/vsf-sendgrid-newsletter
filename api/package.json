@@ -1,0 +1,26 @@
+{
+  "name": "sendgrid-newsletter",
+  "version": "1.0.0",
+  "description": "Module for adding mails to the contacts",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/new-fantastic/vsf-sendgrid-newsletter.git"
+  },
+  "keywords": [
+    "sendgrid",
+    "newsletter"
+  ],
+  "author": "Fifciuu",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/new-fantastic/vsf-sendgrid-newsletter/issues"
+  },
+  "homepage": "https://github.com/new-fantastic/vsf-sendgrid-newsletter#readme",
+  "dependencies": {
+    "@sendgrid/contact-importer": "^6.4.0"
+  }
+}
