@@ -3,6 +3,7 @@ import { ActionTree } from "vuex";
 import * as types from "./mutation-types";
 import config from "config";
 import { currentStoreView } from '@vue-storefront/core/lib/multistore';
+import { TaskQueue } from '@vue-storefront/core/lib/sync'
 
 const baseUrl = config.api.url.endsWith('/') ? config.api.url : `${config.api.url}/`
 
@@ -16,6 +17,7 @@ export const actions: ActionTree<SendgridState, any> = {
       if (key) {
         uri += `&list=${key}`
       }
+      
       let { result } = await (await fetch(uri, {
         method: 'GET'
       })).json()
@@ -51,28 +53,38 @@ export const actions: ActionTree<SendgridState, any> = {
       }
 
       try {
-        await fetch(`${baseUrl}api/ext/sendgrid-newsletter`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
+        let { code } = await TaskQueue.execute({
+          url: `${baseUrl}api/ext/sendgrid-newsletter`,
+          payload: {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            mode: 'cors',
+            body: JSON.stringify({
+              email,
+              ...(!!storeCode ? { country: storeCode } : {}),
+              ...(!!lists ? { lists } : {})
+            })
           },
-          body: JSON.stringify({
-            email,
-            ...(!!storeCode ? { country: storeCode } : {}),
-            ...(!!lists ? { lists } : {})
-          })
+          silent: true
         })
 
-        commit(types.NEWSLETTER_SUBSCRIBE);
+        if (code !== 200) {
+          return false
+        }
+
+        commit(types.NEWSLETTER_SUBSCRIBE, {});
 
         if (!state.customer) {
           commit(types.SET_CUSTOMER, {
             email
           });
         }
+
+        return true
   
       } catch (err) {
         console.log('ERROR', err)
+        return false
       }
 
   },
