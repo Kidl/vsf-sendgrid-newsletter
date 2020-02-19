@@ -19,7 +19,7 @@ const addCustomerToMagentoList = async () => {
   customer.extension_attributes.is_subscribed = true
 
   try {
-    let result = await rootStore.dispatch('user/update', { customer })
+    await rootStore.dispatch('user/update', { customer })
     return true
 
   } catch (err) {
@@ -28,7 +28,9 @@ const addCustomerToMagentoList = async () => {
   }
 }
 
-const addGuestToMagentoList = async () => {}
+const addGuestToMagentoList = async () => {
+  return true
+}
 
 const addToMagentoList = async () => {
   if (rootStore.getters['user/isLoggedIn']) {
@@ -84,7 +86,7 @@ export const actions: ActionTree<SendgridState, any> = {
       }
 
       try {
-        let { code } = await TaskQueue.execute({
+        let { code, result } = await TaskQueue.execute({
           url: `${baseUrl}api/ext/sendgrid-newsletter`,
           payload: {
             method: 'POST',
@@ -100,7 +102,7 @@ export const actions: ActionTree<SendgridState, any> = {
         })
 
         if (code !== 200) {
-          return false
+          return result
         }
 
         commit(types.NEWSLETTER_SUBSCRIBE, {});
@@ -112,7 +114,7 @@ export const actions: ActionTree<SendgridState, any> = {
         }
 
         if (setMagentoAttribute) {
-          await addToMagentoList()
+          return await addToMagentoList()
         }
 
         return true
