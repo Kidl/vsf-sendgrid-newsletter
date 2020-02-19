@@ -56,6 +56,13 @@ If you have single store add abrevation just to the main `i18n` inside config, e
 }
 ```
 
+If you use Magento2, you could enable saving Newsletter Subscriptions to M2 also, by setting as true:
+```json
+"sendgrid": {
+  "addToMagentoList": true
+}
+```
+
 Now open your VSF-API:
 Copy content of API catalog to the`src/api/extensions/sendgrid-newsletter`.
 Add to the config `sendgrid-newsletter`:

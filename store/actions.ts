@@ -1,3 +1,4 @@
+import rootStore from '@vue-storefront/core/store';
 import SendgridState from "../types/SendgridState";
 import { ActionTree } from "vuex";
 import * as types from "./mutation-types";
@@ -5,7 +6,37 @@ import config from "config";
 import { currentStoreView } from '@vue-storefront/core/lib/multistore';
 import { TaskQueue } from '@vue-storefront/core/lib/sync'
 
-const baseUrl = config.api.url.endsWith('/') ? config.api.url : `${config.api.url}/`
+const baseUrl: string = config.api.url.endsWith('/') ? config.api.url : `${config.api.url}/`
+const setMagentoAttribute: boolean = config.sendgrid && config.sendgrid.addToMagentoList
+
+const addCustomerToMagentoList = async () => {
+  
+  let customer = rootStore.state.user.current
+  if (!customer) {
+    return
+  }
+
+  customer.extension_attributes.is_subscribed = true
+
+  try {
+    let result = await rootStore.dispatch('user/update', { customer })
+    return true
+
+  } catch (err) {
+    console.log('ERROR', err)
+    return false
+  }
+}
+
+const addGuestToMagentoList = async () => {}
+
+const addToMagentoList = async () => {
+  if (rootStore.getters['user/isLoggedIn']) {
+    return await addCustomerToMagentoList()
+  } else {
+    return await addGuestToMagentoList()
+  }
+}
 
 export const actions: ActionTree<SendgridState, any> = {
 
@@ -78,6 +109,10 @@ export const actions: ActionTree<SendgridState, any> = {
           commit(types.SET_CUSTOMER, {
             email
           });
+        }
+
+        if (setMagentoAttribute) {
+          await addToMagentoList()
         }
 
         return true
