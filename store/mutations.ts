@@ -17,4 +17,8 @@ export const mutations: MutationTree<SendgridState> = {
     Vue.set(state.subscribed, key, false)
   },
 
+  [types.SET_SAVED_AS_GUEST] (state, value) {
+    state.savedAsGuest = value
+  }
+
 }

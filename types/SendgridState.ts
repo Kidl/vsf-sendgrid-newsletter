@@ -5,5 +5,6 @@ export interface Subscribed {
 
 export default interface SendgridState {
   customer: Object | null,
-  subscribed: Subscribed | null
+  subscribed: Subscribed | null,
+  savedAsGuest: Boolean
 }

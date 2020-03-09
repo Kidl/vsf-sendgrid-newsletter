@@ -3,11 +3,20 @@ import SendgridState from "../types/SendgridState";
 import { ActionTree } from "vuex";
 import * as types from "./mutation-types";
 import config from "config";
-import { currentStoreView } from '@vue-storefront/core/lib/multistore';
+import { currentStoreView, adjustMultistoreApiUrl } from '@vue-storefront/core/lib/multistore';
 import { TaskQueue } from '@vue-storefront/core/lib/sync'
+import { StorageManager } from '@vue-storefront/core/lib/storage-manager'
+import { KEY } from '../'
 
 const baseUrl: string = config.api.url.endsWith('/') ? config.api.url : `${config.api.url}/`
 const setMagentoAttribute: boolean = config.sendgrid && config.sendgrid.addToMagentoList
+
+const setSavedAsGuest = (commit, value: Boolean = true) => {
+  commit(types.SET_SAVED_AS_GUEST, value)
+  return StorageManager.get(KEY).setItem('saved-as-guest', value).catch((reason) => {
+    console.error(reason) 
+  })
+}
 
 const addCustomerToMagentoList = async () => {
   
@@ -28,15 +37,35 @@ const addCustomerToMagentoList = async () => {
   }
 }
 
-const addGuestToMagentoList = async () => {
+const addGuestToMagentoList = async (email: string) => {
+  try {
+    let uri = adjustMultistoreApiUrl(`${baseUrl}api/ext/newsletter-guest`)
+    let storeView = currentStoreView()
+    let abbr = (<any>storeView).i18n.abbreviation
+      ? (<any>storeView).i18n.abbreviation : storeView.i18n.fullCountryName
+
+    await fetch(uri, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        email,
+        country: abbr
+      })
+    })
+  } catch (err) {
+    console.log('ERROR', err)
+    return false
+  }
   return true
 }
 
-const addToMagentoList = async () => {
+const addToMagentoList = async (email?: string) => {
   if (rootStore.getters['user/isLoggedIn']) {
     return await addCustomerToMagentoList()
   } else {
-    return await addGuestToMagentoList()
+    return await addGuestToMagentoList(email)
   }
 }
 
@@ -87,7 +116,7 @@ export const actions: ActionTree<SendgridState, any> = {
 
       try {
         let { code, result } = await TaskQueue.execute({
-          url: `${baseUrl}api/ext/sendgrid-newsletter`,
+          url: adjustMultistoreApiUrl(`${baseUrl}api/ext/sendgrid-newsletter`),
           payload: {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -102,6 +131,9 @@ export const actions: ActionTree<SendgridState, any> = {
         })
 
         if (code !== 200) {
+          if (code === 409 && setMagentoAttribute) {
+            await addToMagentoList(email)
+          }
           return result
         }
 
@@ -113,11 +145,14 @@ export const actions: ActionTree<SendgridState, any> = {
           });
         }
 
+        let magentoListStatus = true
         if (setMagentoAttribute) {
-          return await addToMagentoList()
+          await addToMagentoList(email)
         }
-
-        return true
+        if (!rootStore.getters['user/isLoggedIn']) {
+          setSavedAsGuest(commit)
+        }
+        return magentoListStatus
   
       } catch (err) {
         console.log('ERROR', err)

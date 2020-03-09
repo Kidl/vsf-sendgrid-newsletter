@@ -4,5 +4,6 @@ export const state: SendgridState = {
   customer: null,
   subscribed: {
     allList: false
-  }
+  },
+  savedAsGuest: false
 }
