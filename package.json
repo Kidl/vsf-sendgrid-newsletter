@@ -28,5 +28,6 @@
   },
   "homepage": "https://github.com/AbsoluteWebServices/vsf-klaviyo#readme",
   "dependencies": {
+    "lodash.get": "^4.4.2"
   }
 }

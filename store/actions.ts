@@ -7,6 +7,7 @@ import { currentStoreView, adjustMultistoreApiUrl } from '@vue-storefront/core/l
 import { TaskQueue } from '@vue-storefront/core/lib/sync'
 import { StorageManager } from '@vue-storefront/core/lib/storage-manager'
 import { KEY } from '../'
+import lodashGet from 'lodash.get'
 
 const baseUrl: string = config.api.url.endsWith('/') ? config.api.url : `${config.api.url}/`
 const setMagentoAttribute: boolean = config.sendgrid && config.sendgrid.addToMagentoList
@@ -73,11 +74,17 @@ export const actions: ActionTree<SendgridState, any> = {
 
   async identify({ commit, state }, { user, key = undefined }) {
     const { email } = user
+    let list = key
 
     try {
       let uri = `${baseUrl}api/ext/sendgrid-newsletter/identify?email=${email}`
-      if (key) {
-        uri += `&list=${key}`
+      if (!list) {
+        const { storeCode } = currentStoreView()
+        list = lodashGet(config, `sendgrid.defaultLists["${storeCode}"]`, null)
+      }
+
+      if (list) {
+        uri += `&list=${list}`
       }
       
       let { result } = await (await fetch(uri, {
@@ -85,7 +92,7 @@ export const actions: ActionTree<SendgridState, any> = {
       })).json()
 
 
-      const base = key ? { key, value: result.exists } : { value: result.exists }
+      const base = list ? { key: list, value: result.exists } : { value: result.exists }
       commit(types.NEWSLETTER_SUBSCRIBE, base);
 
       if (!state.customer) {
@@ -101,29 +108,33 @@ export const actions: ActionTree<SendgridState, any> = {
 
   async subscribe({ commit, state }, { email, key = 'allList' }) {
       let storeView = currentStoreView()
-      let storeCode = (<any>storeView).i18n.abbreviation
+      let abbr = (<any>storeView).i18n.abbreviation
         ? (<any>storeView).i18n.abbreviation : storeView.i18n.fullCountryName
 
       let lists
       if (typeof key === 'string') {
         lists = key
         if (lists === 'allList') {
-          lists = null
+          lists = lodashGet(config, `sendgrid.defaultLists["${storeView.storeCode}"]`, null)
         }
       } else {
         lists = key.filter(key => !state.subscribed[key])
       }
 
       try {
+        let url = adjustMultistoreApiUrl(`${baseUrl}api/ext/sendgrid-newsletter`)
+        if (rootStore.getters['user/isLoggedIn']) {
+          url += `${url.includes('?') ? '&' : '?'}token=${rootStore.getters['user/getUserToken']}`
+        }
         let { code, result } = await TaskQueue.execute({
-          url: adjustMultistoreApiUrl(`${baseUrl}api/ext/sendgrid-newsletter`),
+          url,
           payload: {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             mode: 'cors',
             body: JSON.stringify({
-              email,
-              ...(!!storeCode ? { country: storeCode } : {}),
+              ...(!rootStore.getters['user/isLoggedIn'] ? { email } : {}),
+              ...(!!abbr ? { country: abbr } : {}),
               ...(!!lists ? { lists } : {})
             })
           },

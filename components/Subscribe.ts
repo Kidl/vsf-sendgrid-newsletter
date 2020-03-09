@@ -8,20 +8,28 @@ export const Subscribe = {
 
   data () {
     return {
-      email: this.$store.getters['user/isLoggedIn'] ? this.$store.getters['user/getUserEmail'] : ''
+      email: this.$store.getters['user/isLoggedIn'] ? this.$store.getters['user/getUserEmail'] : '',
+      isSubscribing: false
     };
   },
 
-  validations: {
-    email: {
-      required,
-      email
+  validations () {
+    if (this.$store.getters['user/isLoggedIn']) {
+      return {}
+    } else {
+      return {
+        email: {
+          required,
+          email
+        }
+      }
     }
   },
 
   methods: {
     async sendgridSubscribe({ list = null, silent = false } = {}) {
       let result = false
+      this.isSubscribing = true
       if (!this.$v.$invalid) {
         result = await this.$store
           .dispatch("sendgrid-newsletter/subscribe", {
@@ -47,11 +55,22 @@ export const Subscribe = {
           action1: { label: i18n.t('OK') }
         })
       }
+
+      this.$emit('subscribed')
+
+      this.isSubscribing = false
+    },
+
+    async sendgridUnsubscribe () {
+      return
     }
   },
   computed: {
     sendgridSubscriptions(): Subscribed {
       return this.$store.state['sendgrid-newsletter'].subscribed;
+    },
+    savedAsGuest () {
+      return this.$store.state['sendgrid-newsletter'].savedAsGuest
     }
   }
 };
