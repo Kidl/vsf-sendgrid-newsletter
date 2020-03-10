@@ -185,19 +185,6 @@ export const actions: ActionTree<SendgridState, any> = {
       console.log('You have to be logged in to unsubscribe')
       return
     }
-    // let storeView = currentStoreView()
-    // let abbr = (<any>storeView).i18n.abbreviation
-    //   ? (<any>storeView).i18n.abbreviation : storeView.i18n.fullCountryName
-
-    // let lists
-    // if (typeof key === 'string') {
-    //   lists = key
-    //   if (lists === 'allList') {
-    //     lists = lodashGet(config, `sendgrid.defaultLists["${storeView.storeCode}"]`, null)
-    //   }
-    // } else {
-    //   lists = key.filter(key => !state.subscribed[key])
-    // }
 
     try {
       let url = adjustMultistoreApiUrl(`${baseUrl}api/ext/sendgrid-newsletter`)
@@ -217,7 +204,7 @@ export const actions: ActionTree<SendgridState, any> = {
         return result
       }
 
-      commit(types.NEWSLETTER_UNSUBSCRIBE, {});
+      commit(types.NEWSLETTER_UNSUBSCRIBE);
 
       let magentoListStatus = true
       if (setMagentoAttribute) {

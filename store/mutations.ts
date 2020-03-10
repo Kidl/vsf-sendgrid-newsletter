@@ -13,8 +13,10 @@ export const mutations: MutationTree<SendgridState> = {
     Vue.set(state.subscribed, key, value)
   },
 
-  [types.NEWSLETTER_UNSUBSCRIBE] (state, { key = 'allList' }) {
-    Vue.set(state.subscribed, key, false)
+  [types.NEWSLETTER_UNSUBSCRIBE] (state) {
+    for (let key of Object.keys(state.subscribed)) {
+      Vue.set(state.subscribed, key, false)
+    }
   },
 
   [types.SET_SAVED_AS_GUEST] (state, value) {
