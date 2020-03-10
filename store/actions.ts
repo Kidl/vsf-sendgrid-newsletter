@@ -19,14 +19,14 @@ const setSavedAsGuest = (commit, value: Boolean = true) => {
   })
 }
 
-const addCustomerToMagentoList = async () => {
+const setCustomerInMagentoList = async (subscribed: Boolean = true) => {
   
   let customer = rootStore.state.user.current
   if (!customer) {
     return
   }
 
-  customer.extension_attributes.is_subscribed = true
+  customer.extension_attributes.is_subscribed = subscribed
 
   try {
     await rootStore.dispatch('user/update', { customer })
@@ -64,7 +64,7 @@ const addGuestToMagentoList = async (email: string) => {
 
 const addToMagentoList = async (email?: string) => {
   if (rootStore.getters['user/isLoggedIn']) {
-    return await addCustomerToMagentoList()
+    return await setCustomerInMagentoList(true)
   } else {
     return await addGuestToMagentoList(email)
   }
@@ -148,7 +148,15 @@ export const actions: ActionTree<SendgridState, any> = {
           return result
         }
 
-        commit(types.NEWSLETTER_SUBSCRIBE, {});
+        if (lists && typeof lists === 'string') {
+          lists = [lists]
+        } 
+
+        for (let list of lists) {
+          commit(types.NEWSLETTER_SUBSCRIBE, {
+            key: list
+          })
+        }
 
         if (!state.customer) {
           commit(types.SET_CUSTOMER, {
@@ -171,6 +179,58 @@ export const actions: ActionTree<SendgridState, any> = {
       }
 
   },
+
+  async unsubscribe({ commit, state }) {
+    if (!rootStore.getters['user/isLoggedIn']) {
+      console.log('You have to be logged in to unsubscribe')
+      return
+    }
+    // let storeView = currentStoreView()
+    // let abbr = (<any>storeView).i18n.abbreviation
+    //   ? (<any>storeView).i18n.abbreviation : storeView.i18n.fullCountryName
+
+    // let lists
+    // if (typeof key === 'string') {
+    //   lists = key
+    //   if (lists === 'allList') {
+    //     lists = lodashGet(config, `sendgrid.defaultLists["${storeView.storeCode}"]`, null)
+    //   }
+    // } else {
+    //   lists = key.filter(key => !state.subscribed[key])
+    // }
+
+    try {
+      let url = adjustMultistoreApiUrl(`${baseUrl}api/ext/sendgrid-newsletter`)
+      url += `${url.includes('?') ? '&' : '?'}token=${rootStore.getters['user/getUserToken']}`
+      // url += `&lists=${lists}`
+
+      let { code, result } = await TaskQueue.execute({
+        url,
+        payload: {
+          method: 'DELETE',
+          mode: 'cors'
+        },
+        silent: true
+      })
+
+      if (code !== 200) {
+        return result
+      }
+
+      commit(types.NEWSLETTER_UNSUBSCRIBE, {});
+
+      let magentoListStatus = true
+      if (setMagentoAttribute) {
+        await setCustomerInMagentoList(false)
+      }
+      return magentoListStatus
+
+    } catch (err) {
+      console.log('ERROR', err)
+      return false
+    }
+
+}
 
   // unsubscribe({ commit, state }, email): Promise<Response> {
   //   if (state.isSubscribed) {
