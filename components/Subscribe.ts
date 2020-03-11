@@ -27,7 +27,7 @@ export const Subscribe = {
   },
 
   methods: {
-    async sendgridSubscribe({ list = null, silent = false } = {}) {
+    async sendgridSubscribe({ list = null, silent = false, magentoList = true } = {}) {
       let result = false
       this.isSubscribing = true
       if (!this.$v.$invalid) {

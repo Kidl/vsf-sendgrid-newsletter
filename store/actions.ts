@@ -106,7 +106,7 @@ export const actions: ActionTree<SendgridState, any> = {
     }
   },
 
-  async subscribe({ commit, state }, { email, key = 'allList' }) {
+  async subscribe({ commit, state }, { email, key = 'allList', magentoList = true }) {
       let storeView = currentStoreView()
       let abbr = (<any>storeView).i18n.abbreviation
         ? (<any>storeView).i18n.abbreviation : storeView.i18n.fullCountryName
@@ -165,10 +165,10 @@ export const actions: ActionTree<SendgridState, any> = {
         }
 
         let magentoListStatus = true
-        if (setMagentoAttribute) {
+        if (magentoList && setMagentoAttribute) {
           await addToMagentoList(email)
         }
-        if (!rootStore.getters['user/isLoggedIn']) {
+        if (magentoList && setMagentoAttribute && !rootStore.getters['user/isLoggedIn']) {
           setSavedAsGuest(commit)
         }
         return magentoListStatus
@@ -180,7 +180,7 @@ export const actions: ActionTree<SendgridState, any> = {
 
   },
 
-  async unsubscribe({ commit, state }) {
+  async unsubscribe({ commit, state }, {  magentoList = true  }) {
     if (!rootStore.getters['user/isLoggedIn']) {
       console.log('You have to be logged in to unsubscribe')
       return
@@ -201,13 +201,13 @@ export const actions: ActionTree<SendgridState, any> = {
       })
 
       if (code !== 200) {
-        return result
+        return false
       }
 
       commit(types.NEWSLETTER_UNSUBSCRIBE);
 
       let magentoListStatus = true
-      if (setMagentoAttribute) {
+      if (magentoList && setMagentoAttribute) {
         await setCustomerInMagentoList(false)
       }
       return magentoListStatus
