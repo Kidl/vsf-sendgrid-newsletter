@@ -150,12 +150,16 @@ export const actions: ActionTree<SendgridState, any> = {
 
         if (lists && typeof lists === 'string') {
           lists = [lists]
-        } 
-
-        for (let list of lists) {
-          commit(types.NEWSLETTER_SUBSCRIBE, {
-            key: list
-          })
+        }
+        
+        if (!lists) {
+          commit(types.NEWSLETTER_SUBSCRIBE, {})
+        } else {
+          for (let list of lists) {
+            commit(types.NEWSLETTER_SUBSCRIBE, {
+              key: list
+            })
+          }
         }
 
         if (!state.customer) {
