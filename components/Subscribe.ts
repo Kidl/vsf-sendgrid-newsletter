@@ -56,6 +56,20 @@ export const Subscribe = {
         })
       }
 
+      if (success) {
+        let newsletterGtmAction = 'footer'
+        if (this.source === 'modal') {
+          newsletterGtmAction = 'pop-in'
+        } else if (this.source !== 'footer' && this.source !== 'modal') {
+          newsletterGtmAction = undefined
+        }
+        this.$gtm.trackEvent({
+          event: 'genericEvent',
+          category: 'newsletter subscription',
+          action: newsletterGtmAction
+        })
+      }
+
       this.$emit('subscribed')
 
       this.isSubscribing = false
