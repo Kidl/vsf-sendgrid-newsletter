@@ -64,7 +64,7 @@ export const Subscribe = {
           newsletterGtmAction = undefined
         }
         this.$gtm.trackEvent({
-          event: 'pageView',
+          event: 'genericEvent',
           eventCategory: 'newsletter subscription',
           eventAction: newsletterGtmAction
         })
